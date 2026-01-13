@@ -91,55 +91,57 @@ void returnPlayer()
 Display::~Display()
 {
   delete _pager;
-  delete _footer;
-  delete _plwidget;
-  delete _nums;
-  delete _clock;
-  delete _meta;
-  delete _title1;
-  delete _title2;
-  delete _plcurrent;
-}
+    if (btMeta.connected)
+    {
+      // copy under mutex to avoid torn reads (keep internal meta updated)
+      char localArtist[sizeof(btMeta.artist)];
+      char localTitle[sizeof(btMeta.title)];
+      if (btMetaMutex)
+        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
+      strlcpy(localArtist, btMeta.artist, sizeof(localArtist));
+      strlcpy(localTitle, btMeta.title, sizeof(localTitle));
+      if (btMetaMutex)
+        xSemaphoreGive(btMetaMutex);
 
-void Display::init()
-{
-  Serial.print("##[BOOT]#\tdisplay.init\t");
-#if LIGHT_SENSOR != 255
-  analogSetAttenuation(ADC_0db);
-#endif
-  _bootStep = 0;
-  dsp.initDisplay();
-  displayQueue = NULL;
-  displayQueue = xQueueCreate(5, sizeof(requestParams_t));
-  while (displayQueue == NULL)
-  {
-    ;
-  }
-  _createDspTask();
-  while (!_bootStep == 0)
-  {
-    delay(10);
-  }
-  //_pager.begin();
-  //_bootScreen();
-  _pager = new Pager();
-  _footer = new Page();
-  _plwidget = new PlayListWidget();
-  _nums = new NumWidget();
-  _clock = new ClockWidget();
-  _meta = new ScrollWidget();
-  _title1 = new ScrollWidget();
-  _plcurrent = new ScrollWidget();
-  Serial.println("done");
-}
+      // Keep internal metadata as before
+      String artistText = "";
+      if (strlen(localArtist) > 0)
+      {
+        artistText = localArtist;
+      }
+      else
+      {
+        artistText = stationText; // fallback
+      }
+      String titleText = "";
+      if (strlen(localTitle) > 0)
+      {
+        titleText = localTitle;
+      }
+      else
+      {
+        titleText = stationText; // fallback
+      }
+      String meta = artistText + " - " + titleText;
+      strlcpy(config.station.title, meta.c_str(), sizeof(config.station.title));
 
-uint16_t Display::width()
-{
-  return dsp.width();
-}
-uint16_t Display::height()
-{
-  return dsp.height();
+      // But for UI show device name + "Połączono"; third line empty
+      _title1->setText("Połączono");
+      if (_title2)
+      {
+        _title2->setText("");
+      }
+    }
+    else
+    {
+      // not connected -> show waiting message in artist row
+      _title1->setText("Oczekiwanie na połączenie...");
+      if (_title2)
+      {
+        _title2->setText("");
+      }
+      strlcpy(config.station.title, "", sizeof(config.station.title));
+    }
 }
 #if TIME_SIZE > 19
 #if DSP_MODEL == DSP_SSD1322
