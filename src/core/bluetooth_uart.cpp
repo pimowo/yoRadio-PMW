@@ -153,9 +153,17 @@ void bluetooth_handle_line(const char *line)
             {
                 char meta[256];
                 snprintf(meta, sizeof(meta), "%s - %s", localArtist, btMeta.title);
-                strlcpy(config.station.title, meta, sizeof(config.station.title));
-                netserver.requestOnChange(TITLE, 0);
-                telnet.printf("##CLI.META#: %s\r\n", meta);
+                // dedupe rapid identical META updates
+                static char lastMeta[256] = "";
+                static uint32_t lastMetaTs = 0;
+                if (strcmp(meta, lastMeta) != 0 || (millis() - lastMetaTs) > 2000)
+                {
+                    strlcpy(config.station.title, meta, sizeof(config.station.title));
+                    netserver.requestOnChange(TITLE, 0);
+                    telnet.printf("##CLI.META#: %s\r\n", meta);
+                    strlcpy(lastMeta, meta, sizeof(lastMeta));
+                    lastMetaTs = millis();
+                }
             }
         }
         return;

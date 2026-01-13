@@ -867,7 +867,8 @@ void Display::_title()
     }
     else
     {
-      _title1->setText("");
+      // not connected -> show 'Brak połączenia' in artist line
+      _title1->setText("Brak połączenia");
       if (_title2)
       {
         _title2->setText("");
