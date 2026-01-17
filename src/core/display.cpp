@@ -766,6 +766,13 @@ void Display::_setRSSI(int rssi)
 void Display::_station()
 {
   _meta->setAlign(metaConf.widget.align);
+  // Ensure Bluetooth mode uses the BT-specific title/station logic
+  if (config.getMode() == PM_BLUETOOTH)
+  {
+    // _title() contains the BT-aware logic that sets `_meta`, `_title1` and `_title2`
+    _title();
+    return;
+  }
   if (config.getMode() == PM_WEB)
   {
     // Prefer explicit station name when available — show it immediately
