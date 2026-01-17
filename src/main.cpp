@@ -33,155 +33,7 @@ HardwareSerial btSerial(2); // UART2, pins 16 RX, 17 TX
 
 extern __attribute__((weak)) void yoradio_on_setup();
 
-// Bluetooth UART parser
-void parseBTMessage(String msg)
-{
-  Serial.print("BT MSG: ");
-  Serial.println(msg); // Debug: pokaż odebrane wiadomości
-  if (msg.startsWith("BT:"))
-  {
-    int colon1 = msg.indexOf(':', 3);
-    String cmd;
-    String value;
-    if (colon1 == -1)
-    {
-      cmd = msg.substring(3);
-    }
-    else
-    {
-      cmd = msg.substring(3, colon1);
-      value = msg.substring(colon1 + 1);
-      value.trim();
-    }
-
-    if (cmd == "CONNECTED")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      btMeta.connected = true;
-      memset(btMeta.artist, 0, sizeof(btMeta.artist));
-      memset(btMeta.title, 0, sizeof(btMeta.title));
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-      Serial.println("BT: Connected set to true"); // Debug
-      // Update display if in BT mode
-      if (config.getMode() == PM_BLUETOOTH)
-      {
-        display.putRequest(NEWTITLE);
-      }
-    }
-    else if (cmd == "DISCONNECTED")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      btMeta.connected = false;
-      memset(btMeta.deviceName, 0, sizeof(btMeta.deviceName));
-      memset(btMeta.deviceMAC, 0, sizeof(btMeta.deviceMAC));
-      memset(btMeta.artist, 0, sizeof(btMeta.artist));
-      memset(btMeta.title, 0, sizeof(btMeta.title));
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-      if (config.getMode() == PM_BLUETOOTH)
-      {
-        display.putRequest(NEWTITLE);
-      }
-    }
-    else if (cmd == "NAME")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      if (!btMeta.connected)
-      {
-        btMeta.connected = true;
-        Serial.println("BT: Connected set to true from NAME"); // Debug
-      }
-      strlcpy(btMeta.deviceName, value.c_str(), sizeof(btMeta.deviceName));
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-      if (config.getMode() == PM_BLUETOOTH)
-      {
-        display.putRequest(NEWTITLE);
-      }
-    }
-    else if (cmd == "MAC")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      strlcpy(btMeta.deviceMAC, value.c_str(), sizeof(btMeta.deviceMAC));
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-    }
-    else if (cmd == "ARTIST")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      if (!btMeta.connected)
-      {
-        btMeta.connected = true;
-        Serial.println("BT: Connected set to true from ARTIST"); // Debug
-      }
-      strlcpy(btMeta.artist, value.c_str(), sizeof(btMeta.artist));
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-      if (config.getMode() == PM_BLUETOOTH)
-      {
-        display.putRequest(NEWTITLE);
-      }
-    }
-    else if (cmd == "TITLE")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      if (!btMeta.connected)
-      {
-        btMeta.connected = true;
-        Serial.println("BT: Connected set to true from TITLE"); // Debug
-      }
-      strlcpy(btMeta.title, value.c_str(), sizeof(btMeta.title));
-      // copy local copy of artist and title to build meta safely
-      char localArtist[sizeof(btMeta.artist)];
-      char localTitle[sizeof(btMeta.title)];
-      strlcpy(localArtist, btMeta.artist, sizeof(localArtist));
-      strlcpy(localTitle, btMeta.title, sizeof(localTitle));
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-      if (config.getMode() == PM_BLUETOOTH)
-      {
-        display.putRequest(NEWTITLE);
-        if (strlen(localArtist) > 0 && strlen(localTitle) > 0)
-        {
-          char meta[256];
-          snprintf(meta, sizeof(meta), "%s - %s", localArtist, localTitle);
-          strlcpy(config.station.title, meta, sizeof(config.station.title));
-          netserver.requestOnChange(TITLE, 0);
-          telnet.printf("##CLI.META#: %s\r\n", meta);
-        }
-      }
-    }
-    else if (cmd == "PLAYING")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      btMeta.playing = true;
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-    }
-    else if (cmd == "STOPPED")
-    {
-      if (btMetaMutex)
-        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      btMeta.playing = false;
-      if (btMetaMutex)
-        xSemaphoreGive(btMetaMutex);
-      if (config.getMode() == PM_BLUETOOTH)
-      {
-        memset(config.station.title, 0, sizeof(config.station.title));
-        netserver.requestOnChange(TITLE, 0);
-        telnet.printf("##CLI.META#: \r\n");
-      }
-    }
-  }
-}
+// Removed duplicate parser `parseBTMessage` to avoid redundant parsing paths.
 
 #if USE_OTA
 void setupOTA()
@@ -319,38 +171,64 @@ void loop()
   }
 
   // Check for Bluetooth PLAY/PAUSE ACK timeout
-  if (btMeta.awaitingAck && btMeta.ackDeadline > 0 && millis() > btMeta.ackDeadline)
   {
-    // Try to resend PLAY/PAUSE a couple of times before giving up
-    const uint8_t MAX_ACK_RETRIES = 2;
+    // snapshot small set under mutex to avoid races
+    bool awaiting = false;
+    uint32_t ackDeadline = 0;
     if (btMetaMutex)
       xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-    if (btMeta.ackRetries < MAX_ACK_RETRIES)
+    awaiting = btMeta.awaitingAck;
+    ackDeadline = btMeta.ackDeadline;
+    if (btMetaMutex)
+      xSemaphoreGive(btMetaMutex);
+
+    if (awaiting && ackDeadline > 0 && millis() > ackDeadline)
     {
-      // resend last expected command
-      if (btMeta.expectedPlaying)
+      // Try to resend PLAY/PAUSE a couple of times before giving up
+      const uint8_t MAX_ACK_RETRIES = 2;
+      bool willSend = false;
+      char sendCmd[8] = {0};
+      const char *logMsg = NULL;
+      if (btMetaMutex)
+        xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
+      if (btMeta.ackRetries < MAX_ACK_RETRIES)
       {
-        Serial.println("BT: ACK timeout — retrying PLAY");
-        btSerial.println("PLAY");
+        // decide command to resend, update counters under mutex
+        if (btMeta.expectedPlaying)
+        {
+          strlcpy(sendCmd, "PLAY", sizeof(sendCmd));
+          logMsg = "BT: ACK timeout — retrying PLAY";
+        }
+        else
+        {
+          strlcpy(sendCmd, "PAUSE", sizeof(sendCmd));
+          logMsg = "BT: ACK timeout — retrying PAUSE";
+        }
+        btMeta.ackRetries++;
+        btMeta.ackDeadline = millis() + bt_ack_timeout_ms;
+        willSend = true;
       }
       else
       {
-        Serial.println("BT: ACK timeout — retrying PAUSE");
-        btSerial.println("PAUSE");
+        // exhausted retries — give up and clear awaiting flag
+        btMeta.awaitingAck = false;
+        btMeta.ackDeadline = 0;
+        btMeta.ackRetries = 0;
+        logMsg = "BT: ACK timeout for PLAY/PAUSE — giving up";
       }
-      btMeta.ackRetries++;
-      btMeta.ackDeadline = millis() + bt_ack_timeout_ms;
+      if (btMetaMutex)
+        xSemaphoreGive(btMetaMutex);
+
+      // perform UART I/O and logging outside mutex
+      if (logMsg)
+      {
+        Serial.println(logMsg);
+      }
+      if (willSend)
+      {
+        btSerial.println(sendCmd);
+      }
     }
-    else
-    {
-      // exhausted retries — give up and clear awaiting flag
-      btMeta.awaitingAck = false;
-      btMeta.ackDeadline = 0;
-      btMeta.ackRetries = 0;
-      Serial.println("BT: ACK timeout for PLAY/PAUSE — giving up");
-    }
-    if (btMetaMutex)
-      xSemaphoreGive(btMetaMutex);
   }
 
   // Heartbeat/timeout: only mark disconnected when we had active playback

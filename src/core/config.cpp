@@ -10,9 +10,8 @@
 #include "timekeeper.h"
 #include "telnet.h"
 #include <HardwareSerial.h>
-extern HardwareSerial btSerial;
-
-// UART for Bluetooth metadata
+#include <HardwareSerial.h>
+// UART for Bluetooth metadata (declared in main)
 extern HardwareSerial btSerial;
 #include "rtcsupport.h"
 #include "../displays/tools/l10n.h"

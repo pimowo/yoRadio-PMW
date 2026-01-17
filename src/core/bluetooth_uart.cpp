@@ -157,11 +157,11 @@ void bluetooth_handle_line(const char *line)
             Serial.println("BT: Connected set to true from TITLE");
         }
         strlcpy(btMeta.title, value, sizeof(btMeta.title));
-        // take a snapshot to build meta safely
-        bt_metadata_t local;
-        bt_meta_snapshot(&local);
         if (btMetaMutex)
             xSemaphoreGive(btMetaMutex);
+        // snapshot updated metadata (bt_meta_snapshot takes the mutex internally)
+        bt_metadata_t local;
+        bt_meta_snapshot(&local);
         if (config.getMode() == PM_BLUETOOTH)
         {
             display.putRequest(NEWTITLE);
