@@ -7,6 +7,7 @@
 
 #include "../../core/config.h"
 #include "../../core/network.h" //  for Clock widget
+#include "../../core/bluetooth_uart.h"
 #include "../dspcore.h"
 #include "../tools/l10n.h"
 #include "../tools/psframebuffer.h"
@@ -1108,40 +1109,50 @@ void BitrateWidget::_draw()
   {
     return;
   }
-  // Normally bail out when unknown format or zero bitrate, but for Bluetooth
-  // we want to display the play/pause icon even if bitrate==0.
+  // Normally bail out when unknown format or zero bitrate (non-BT modes)
   if (config.getMode() != PM_BLUETOOTH && (_format == BF_UNKNOWN || _bitrate == 0))
   {
     return;
   }
-  if (config.store.nameday)
-  { //  Ha be van kapcsolva a nameday Módosítás "nameday"
-    dsp.drawRect(_config.left, _config.top, _dimension * 2, (_dimension / 2) - 6, _fgcolor);
-    dsp.fillRect(_config.left + _dimension, _config.top, _dimension, (_dimension / 2) - 6, _fgcolor);
-    // Serial.printf("widgets.cpp->BitrateWidget _draw() config.store.nameday: %d \n", config.store.nameday) ;
-  }
-  else
-  {
-    dsp.drawRect(_config.left, _config.top, _dimension, _dimension, _fgcolor);                              // Eredeti.
-    dsp.fillRect(_config.left, _config.top + _dimension / 2 + 1, _dimension, _dimension / 2 - 1, _fgcolor); // Eredeti
-    // Serial.printf("widgets.cpp->BitrateWidget _draw() config.store.nameday: %d \n", config.store.nameday) ;
-  }
-  // If current mode is Bluetooth, draw small play/pause icon instead of bitrate
+
+  // Bluetooth-specific path: show play/pause icon only when actually connected.
   if (config.getMode() == PM_BLUETOOTH)
   {
     bt_metadata_t local;
     bt_meta_snapshot(&local);
+    // Require an actual, recently-active connection before drawing the icon.
+    // This avoids drawing the icon on transient state changes (e.g. volume adjust)
+    // when `connected` might be stale.
+    if (!local.connected)
+    {
+      return;
+    }
+    if (local.lastSeen == 0 || (millis() - local.lastSeen) > bt_heartbeat_timeout_ms)
+    {
+      return;
+    }
+
+    // Draw widget frame
+    if (config.store.nameday)
+    {
+      dsp.drawRect(_config.left, _config.top, _dimension * 2, (_dimension / 2) - 6, _fgcolor);
+      dsp.fillRect(_config.left + _dimension, _config.top, _dimension, (_dimension / 2) - 6, _fgcolor);
+    }
+    else
+    {
+      dsp.drawRect(_config.left, _config.top, _dimension, _dimension, _fgcolor);
+      dsp.fillRect(_config.left, _config.top + _dimension / 2 + 1, _dimension, _dimension / 2 - 1, _fgcolor);
+    }
+
+    // draw icon based on playing state
     bool playing = local.playing;
-    // compute icon center inside widget
     int cx = _config.left + _dimension / 2;
     int cy = _config.top + _dimension / 2;
     int s = _dimension / 3; // size
     uint16_t icColor = _bgcolor == 0 ? _fgcolor : _fgcolor;
-    // clear inner area
     dsp.fillRect(_config.left + 2, _config.top + 2, _dimension - 4, _dimension - 4, _bgcolor);
     if (playing)
     {
-      // draw play triangle when playing (user prefers triangle while playing)
       int px1 = cx - s / 2;
       int py1 = cy - s;
       int px2 = cx - s / 2;
@@ -1152,7 +1163,6 @@ void BitrateWidget::_draw()
     }
     else
     {
-      // draw pause (two vertical bars) when stopped
       int w = max(2, s / 3);
       int h = s * 2;
       int x1 = cx - w - 2;
@@ -1163,6 +1173,19 @@ void BitrateWidget::_draw()
     }
     return;
   }
+
+  // Non-Bluetooth path: draw widget frame and bitrate text
+  if (config.store.nameday)
+  {
+    dsp.drawRect(_config.left, _config.top, _dimension * 2, (_dimension / 2) - 6, _fgcolor);
+    dsp.fillRect(_config.left + _dimension, _config.top, _dimension, (_dimension / 2) - 6, _fgcolor);
+  }
+  else
+  {
+    dsp.drawRect(_config.left, _config.top, _dimension, _dimension, _fgcolor);
+    dsp.fillRect(_config.left, _config.top + _dimension / 2 + 1, _dimension, _dimension / 2 - 1, _fgcolor);
+  }
+
   dsp.setFont();
   dsp.setTextSize(_config.textsize);
   dsp.setTextColor(_fgcolor, _bgcolor);

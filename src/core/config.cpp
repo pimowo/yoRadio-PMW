@@ -222,26 +222,18 @@ void Config::changeMode(int newmode)
     bt_meta_snapshot(&local);
     if (local.connected)
     {
-      // Guard against repeated sends if an ACK is already pending.
+      // Ensure we request PAUSE when leaving BT: reset ACK state and force a send.
       // Set flags under mutex, perform UART I/O outside the mutex.
-      bool doSend = false;
       if (btMetaMutex)
         xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
-      if (!btMeta.awaitingAck)
-      {
-        btMeta.awaitingAck = true;
-        btMeta.expectedPlaying = false;
-        btMeta.ackDeadline = millis() + bt_ack_timeout_ms;
-        btMeta.ackRetries = 0;
-        doSend = true;
-      }
+      btMeta.awaitingAck = true;
+      btMeta.expectedPlaying = false;
+      btMeta.ackDeadline = millis() + bt_ack_timeout_ms;
+      btMeta.ackRetries = 0;
       if (btMetaMutex)
         xSemaphoreGive(btMetaMutex);
-      if (doSend)
-      {
-        bt_send_cmd("PAUSE");
-        delay(50);
-      }
+      bt_send_cmd("PAUSE");
+      delay(50);
     }
   }
   saveValue(&store.play_mode, store.play_mode, true, true);

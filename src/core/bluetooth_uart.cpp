@@ -3,6 +3,10 @@
 #include "core/display.h"
 #include "core/netserver.h"
 #include "core/telnet.h"
+#include <HardwareSerial.h>
+
+// UART for Bluetooth metadata (defined in main.cpp)
+extern HardwareSerial btSerial;
 #include <string.h>
 #include <ctype.h>
 
@@ -66,8 +70,6 @@ void bluetooth_handle_line(const char *line)
         trim(value);
         trim(cmd);
     }
-    
-    
 
     if (strcmp(cmd, "CONNECTED") == 0)
     {
@@ -83,7 +85,10 @@ void bluetooth_handle_line(const char *line)
             xSemaphoreGive(btMetaMutex);
         Serial.println("BT: Connected set to true");
         if (config.getMode() == PM_BLUETOOTH)
+        {
             display.putRequest(NEWTITLE);
+            display.putRequest(DBITRATE);
+        }
         return;
     }
     if (strcmp(cmd, "STATUS") == 0)
@@ -98,7 +103,10 @@ void bluetooth_handle_line(const char *line)
         if (btMetaMutex)
             xSemaphoreGive(btMetaMutex);
         if (config.getMode() == PM_BLUETOOTH)
+        {
             display.putRequest(NEWTITLE);
+            display.putRequest(DBITRATE);
+        }
         return;
     }
     if (strcmp(cmd, "DISCONNECTED") == 0)
@@ -114,7 +122,10 @@ void bluetooth_handle_line(const char *line)
         if (btMetaMutex)
             xSemaphoreGive(btMetaMutex);
         if (config.getMode() == PM_BLUETOOTH)
+        {
             display.putRequest(NEWTITLE);
+            display.putRequest(DBITRATE);
+        }
         return;
     }
     if (strcmp(cmd, "NAME") == 0)
@@ -130,7 +141,10 @@ void bluetooth_handle_line(const char *line)
         if (btMetaMutex)
             xSemaphoreGive(btMetaMutex);
         if (config.getMode() == PM_BLUETOOTH)
+        {
             display.putRequest(NEWTITLE);
+            display.putRequest(DBITRATE);
+        }
         return;
     }
     if (strcmp(cmd, "MAC") == 0)
@@ -155,7 +169,10 @@ void bluetooth_handle_line(const char *line)
         if (btMetaMutex)
             xSemaphoreGive(btMetaMutex);
         if (config.getMode() == PM_BLUETOOTH)
+        {
             display.putRequest(NEWTITLE);
+            display.putRequest(DBITRATE);
+        }
         return;
     }
     if (strcmp(cmd, "TITLE") == 0)

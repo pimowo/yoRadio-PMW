@@ -122,7 +122,7 @@
    ========================================================= */
 
 /* Włączanie źródeł audio do przełączania */
-#define SRC_SD true   // Karta SD
+#define SRC_SD false  // Karta SD
 #define SRC_BT true   // Bluetooth
 #define SRC_AUX1 true // AUX1 S/PDIF
 #define SRC_AUX2 true // AUX2 RCA
@@ -170,6 +170,11 @@ GND wspólny między urządzeniami
 #define SD_DETECT_PIN 17 // Pin wykrywania karty SD
 // #define SDC_CS 18
 // #define SDSPISPEED 4000000 // 4 MHz – stabilniej przy SPI shared
+
+#if SRC_SD
+#define SDC_CS 18
+#define SDSPISPEED 4000000 // 4 MHz – stabilniej przy SPI shared
+#endif
 
 /* =========================================================
    14. ZEGAR – WYGLĄD I FUNKCJE

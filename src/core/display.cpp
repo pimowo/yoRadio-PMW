@@ -839,7 +839,7 @@ void Display::_title()
         recentlySeen = true;
     }
 
-    if (local.connected || recentlySeen)
+    if (local.connected)
     {
       if (strlen(local.deviceName) > 0)
       {
@@ -853,94 +853,96 @@ void Display::_title()
     _meta->setText(stationText.c_str());
     netserver.requestOnChange(STATIONNAME, 0);
 
-    if (local.connected || recentlySeen)
+    // For the title lines, require an actual connection.
+    // If the device is disconnected (even if recentlySeen), show the
+    // configured "no connection" text on the title and clear metadata.
+    if (!local.connected)
     {
-      // If playback is paused/stop (but device still present), show explicit pause state
-      if (!local.playing)
-      {
-        _title1->setText("[Zatrzymany]");
-        if (_title2)
-          _title2->setText("");
-        strlcpy(config.station.title, "", sizeof(config.station.title));
-        netserver.requestOnChange(TITLE, 0);
-        return;
-      }
-      // Use snapshot's artist/title
-      char localArtist[sizeof(local.artist)];
-      char localTitle[sizeof(local.title)];
-      strlcpy(localArtist, local.artist, sizeof(localArtist));
-      strlcpy(localTitle, local.title, sizeof(localTitle));
-
-      // Treat common placeholder values from some phones as empty
-      if (strcasecmp(localTitle, "Not Provided") == 0)
-      {
-        localTitle[0] = '\0';
-      }
-      if (strcasecmp(localArtist, "Not Provided") == 0)
-      {
-        localArtist[0] = '\0';
-      }
-      // If the phone reports the device name as ARTIST/TITLE (common on Android),
-      // treat it as empty so we don't duplicate the device name on all lines.
-      if (stationText.length() > 0)
-      {
-        if (strcasecmp(localArtist, stationText.c_str()) == 0)
-          localArtist[0] = '\0';
-        if (strcasecmp(localTitle, stationText.c_str()) == 0)
-          localTitle[0] = '\0';
-      }
-
-      // If no metadata yet, show device name + 'Połączony' on second line
-      if (strlen(localArtist) == 0 && strlen(localTitle) == 0)
-      {
-        _title1->setText("Połączony");
-        if (_title2)
-          _title2->setText("");
-        strlcpy(config.station.title, "", sizeof(config.station.title));
-      }
-      else
-      {
-        String artistText = "";
-        if (strlen(localArtist) > 0)
-        {
-          artistText = localArtist;
-        }
-        else
-        {
-          artistText = stationText; // fallback
-        }
-        _title1->setText(artistText.c_str());
-
-        String titleText = "";
-        if (strlen(localTitle) > 0)
-        {
-          titleText = localTitle;
-        }
-        else
-        {
-          titleText = stationText; // fallback
-        }
-        if (_title2)
-        {
-          _title2->setText(titleText.c_str());
-        }
-        String meta = artistText + " - " + titleText;
-        strlcpy(config.station.title, meta.c_str(), sizeof(config.station.title));
-      }
-    }
-    else
-    {
-      // not connected -> show configured 'no connection' text on the second line
       _title1->setText(SRC_BT_NAME2);
       if (_title2)
       {
         _title2->setText("");
       }
       strlcpy(config.station.title, "", sizeof(config.station.title));
+      netserver.requestOnChange(TITLE, 0);
+      return;
     }
-    netserver.requestOnChange(TITLE, 0);
-    return;
+
+    // Connected: show pause state or metadata as before
+    if (!local.playing)
+    {
+      _title1->setText("[Zatrzymany]");
+      if (_title2)
+        _title2->setText("");
+      strlcpy(config.station.title, "", sizeof(config.station.title));
+      netserver.requestOnChange(TITLE, 0);
+      return;
+    }
+    // Use snapshot's artist/title
+    char localArtist[sizeof(local.artist)];
+    char localTitle[sizeof(local.title)];
+    strlcpy(localArtist, local.artist, sizeof(localArtist));
+    strlcpy(localTitle, local.title, sizeof(localTitle));
+
+    // Treat common placeholder values from some phones as empty
+    if (strcasecmp(localTitle, "Not Provided") == 0)
+    {
+      localTitle[0] = '\0';
+    }
+    if (strcasecmp(localArtist, "Not Provided") == 0)
+    {
+      localArtist[0] = '\0';
+    }
+    // If the phone reports the device name as ARTIST/TITLE (common on Android),
+    // treat it as empty so we don't duplicate the device name on all lines.
+    if (stationText.length() > 0)
+    {
+      if (strcasecmp(localArtist, stationText.c_str()) == 0)
+        localArtist[0] = '\0';
+      if (strcasecmp(localTitle, stationText.c_str()) == 0)
+        localTitle[0] = '\0';
+    }
+
+    // If no metadata yet, show device name + 'Połączony' on second line
+    if (strlen(localArtist) == 0 && strlen(localTitle) == 0)
+    {
+      _title1->setText("Połączony");
+      if (_title2)
+        _title2->setText("");
+      strlcpy(config.station.title, "", sizeof(config.station.title));
+    }
+    else
+    {
+      String artistText = "";
+      if (strlen(localArtist) > 0)
+      {
+        artistText = localArtist;
+      }
+      else
+      {
+        artistText = stationText; // fallback
+      }
+      _title1->setText(artistText.c_str());
+
+      String titleText = "";
+      if (strlen(localTitle) > 0)
+      {
+        titleText = localTitle;
+      }
+      else
+      {
+        titleText = stationText; // fallback
+      }
+      if (_title2)
+      {
+        _title2->setText(titleText.c_str());
+      }
+      String meta = artistText + " - " + titleText;
+      strlcpy(config.station.title, meta.c_str(), sizeof(config.station.title));
+    }
   }
+  netserver.requestOnChange(TITLE, 0);
+
   if (config.getMode() == PM_TV)
   {
     // TV/AUX1: show source name on station line (handled in _station())
