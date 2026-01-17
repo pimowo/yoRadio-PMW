@@ -1109,9 +1109,53 @@ void BitrateWidget::_draw()
   {
     return;
   }
-  // Normally bail out when unknown format or zero bitrate (non-BT modes)
-  if (config.getMode() != PM_BLUETOOTH && (_format == BF_UNKNOWN || _bitrate == 0))
+  // If current mode is AUX1 (TV) or AUX2 (AUX), always show their icons
+  if (config.getMode() == PM_TV)
   {
+    // Draw widget frame
+    if (config.store.nameday)
+    {
+      dsp.drawRect(_config.left, _config.top, _dimension * 2, (_dimension / 2) - 6, _fgcolor);
+      dsp.fillRect(_config.left + _dimension, _config.top, _dimension, (_dimension / 2) - 6, _fgcolor);
+    }
+    else
+    {
+      dsp.drawRect(_config.left, _config.top, _dimension, _dimension, _fgcolor);
+      dsp.fillRect(_config.left, _config.top + _dimension / 2 + 1, _dimension, _dimension / 2 - 1, _fgcolor);
+    }
+    // Draw S/PDIF icon (simple coax connector)
+    int cx = _config.left + _dimension / 2;
+    int cy = _config.top + _dimension / 2;
+    int s = _dimension / 3;
+    uint16_t icColor = _fgcolor;
+    dsp.fillRect(_config.left + 2, _config.top + 2, _dimension - 4, _dimension - 4, _bgcolor);
+    dsp.drawCircle(cx, cy, s, icColor);
+    dsp.fillCircle(cx, cy, max(1, s / 3), icColor);
+    dsp.fillRect(cx + s / 2, cy - s / 8, s / 2, s / 4, icColor);
+    return;
+  }
+  if (config.getMode() == PM_AUX)
+  {
+    // Draw widget frame
+    if (config.store.nameday)
+    {
+      dsp.drawRect(_config.left, _config.top, _dimension * 2, (_dimension / 2) - 6, _fgcolor);
+      dsp.fillRect(_config.left + _dimension, _config.top, _dimension, (_dimension / 2) - 6, _fgcolor);
+    }
+    else
+    {
+      dsp.drawRect(_config.left, _config.top, _dimension, _dimension, _fgcolor);
+      dsp.fillRect(_config.left, _config.top + _dimension / 2 + 1, _dimension, _dimension / 2 - 1, _fgcolor);
+    }
+    // Draw RCA icon (two jacks)
+    int cx = _config.left + _dimension / 2;
+    int cy = _config.top + _dimension / 2;
+    int s = _dimension / 3;
+    uint16_t icColor = _fgcolor;
+    dsp.fillRect(_config.left + 2, _config.top + 2, _dimension - 4, _dimension - 4, _bgcolor);
+    int r = max(2, s / 3);
+    dsp.fillCircle(cx - r - 2, cy, r, icColor);
+    dsp.fillCircle(cx + r + 2, cy, r, icColor);
     return;
   }
 
