@@ -12,3 +12,6 @@ extern uint32_t bt_ack_timeout_ms;
 extern uint32_t bt_heartbeat_timeout_ms;
 
 void bluetooth_handle_line(const char *line);
+// Send a command to BT UART. Use this instead of calling btSerial.println()
+// directly so we can centralize logging/throttling and avoid mutex issues.
+void bt_send_cmd(const char *cmd);

@@ -665,7 +665,7 @@ void onBtnClick(int id)
           if (doInitialSend)
           {
             Serial.printf("BT: sending %s (initial)\n", cmd.c_str());
-            btSerial.println(cmd);
+            bt_send_cmd(cmd.c_str());
             // set flags under mutex
             if (btMetaMutex)
               xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
@@ -685,7 +685,7 @@ void onBtnClick(int id)
           else if (doResend)
           {
             Serial.printf("BT: resending %s (user) retry %u\n", cmd.c_str(), (unsigned)prevRetries + 1);
-            btSerial.println(cmd);
+            bt_send_cmd(cmd.c_str());
             if (btMetaMutex)
               xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
             // optimistic update + bump retries

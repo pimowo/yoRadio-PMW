@@ -23,6 +23,15 @@ static void trim(char *s)
     }
 }
 
+// Centralized BT command sender. Keeps UART I/O in one place and allows
+// future enhancements (throttling, logging) without risking mutex deadlocks.
+void bt_send_cmd(const char *cmd)
+{
+    if (!cmd)
+        return;
+    btSerial.println(cmd);
+}
+
 void bluetooth_handle_line(const char *line)
 {
     if (!line)
@@ -57,6 +66,8 @@ void bluetooth_handle_line(const char *line)
         trim(value);
         trim(cmd);
     }
+    
+    
 
     if (strcmp(cmd, "CONNECTED") == 0)
     {

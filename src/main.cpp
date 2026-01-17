@@ -226,7 +226,7 @@ void loop()
       }
       if (willSend)
       {
-        btSerial.println(sendCmd);
+        bt_send_cmd(sendCmd);
       }
     }
   }
@@ -260,7 +260,7 @@ void loop()
         if (!probeSent)
         {
           Serial.println("BT: sending STATUS probe before disconnect");
-          btSerial.println("STATUS");
+          bt_send_cmd("STATUS");
           if (btMetaMutex)
             xSemaphoreTake(btMetaMutex, pdMS_TO_TICKS(100));
           btMeta.probeSent = true;
