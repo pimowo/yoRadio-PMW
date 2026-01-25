@@ -1,0 +1,94 @@
+#ifndef player_h
+#define player_h
+#include "../audioI2S/Audio.h" //"audio_change"
+
+#ifndef MQTT_BURL_SIZE
+#define MQTT_BURL_SIZE 512
+#endif
+
+#ifndef PLQ_SEND_DELAY
+#define PLQ_SEND_DELAY pdMS_TO_TICKS(1000) // portMAX_DELAY
+#endif
+enum playerRequestType_e : uint8_t
+{
+  PR_PLAY = 1,
+  PR_STOP = 2,
+  PR_PREV = 3,
+  PR_NEXT = 4,
+  PR_VOL = 5,
+  PR_CHECKSD = 6,
+  PR_BURL = 7,
+  PR_TOGGLE = 8
+};
+struct playerRequestParams_t
+{
+  playerRequestType_e type;
+  int payload;
+};
+
+enum plStatus_e : uint8_t
+{
+  PLAYING = 1,
+  STOPPED = 2
+};
+
+class Player : public Audio
+{
+private:
+  uint32_t _volTicks; /* delayed volume save  */
+  bool _volTimer;     /* delayed volume save  */
+                      // uint32_t    _resumeFilePos;
+  plStatus_e _status;
+  // char        _plError[PLERR_LN];
+private:
+  void _stop(bool alreadyStopped = false);
+  void _play(uint16_t stationId);
+  void _loadVol(uint8_t volume);
+  int8_t uiToDb(int8_t uiVal);
+  bool _hasError;
+
+public:
+  bool lockOutput = true;
+  bool resumeAfterUrl = false;
+  volatile bool connproc = true;
+  uint32_t sd_min, sd_max;
+  // Bitrate watchdog
+  bool waitingBitrate = false;
+  uint8_t bitrateRetries = 0;
+  uint32_t bitrateWatchUntil = 0;
+#ifdef MQTT_ROOT_TOPIC
+  char burl[MQTT_BURL_SIZE]; /* buffer for browseUrl  */
+#endif
+public:
+  Player();
+  void init();
+  void loop();
+  void initHeaders(const char *file);
+  void setError();
+  void setError(const char *e);
+  void sendCommand(playerRequestParams_t request);
+  void resetQueue();
+#ifdef MQTT_ROOT_TOPIC
+  void browseUrl();
+#endif
+  bool remoteStationName = false;
+  plStatus_e status() { return _status; }
+  void prev();
+  void next();
+  void toggle();
+  void stepVol(bool up);
+  void setVol(uint8_t volume);
+  uint8_t volToI2S(uint8_t volume);
+  void setTone(int8_t bass, int8_t mid, int8_t treble);
+  void stopInfo();
+  void setOutputPins(bool isPlaying);
+};
+
+extern Player player;
+
+extern __attribute__((weak)) void player_on_start_play();
+extern __attribute__((weak)) void player_on_stop_play();
+extern __attribute__((weak)) void player_on_track_change();
+extern __attribute__((weak)) void player_on_station_change();
+
+#endif
